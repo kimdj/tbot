@@ -2,7 +2,7 @@
 # tbot ~ Subroutines/Commands
 # Copyright (c) 2017 David Kim
 # This program is licensed under the "MIT License".
-# Date of inception: 11/21/17
+# Date of inception: 1/14/17
 
 read nick chan msg      # Assign the 3 arguments to nick, chan and msg.
 
@@ -24,7 +24,7 @@ function say { echo "PRIVMSG ${1} :${2}" ; }
 function send {
     while read -r line; do                          # -r flag prevents backslash chars from acting as escape chars.
       currdate=$(date +%s%N)                         # Get the current date in nanoseconds (UNIX/POSIX/epoch time) since 1970-01-01 00:00:00 UTC (UNIX epoch).
-      if [ "${prevdate}" -gt "${currdate}" ] ; then  # If 0.5 seconds hasn't elapsed since the last loop iteration, sleep. (i.e. force 0.5 sec send intervals).
+      if [ "${prevdate}" = "${currdate}" ] ; then  # If 0.5 seconds hasn't elapsed since the last loop iteration, sleep. (i.e. force 0.5 sec send intervals).
         sleep $(bc -l <<< "(${prevdate} - ${currdate}) / ${nanos}")
         currdate=$(date +%s%N)
       fi
@@ -34,71 +34,57 @@ function send {
     done <<< "${1}"
 }
 
-# This subroutine executes the print script.
+function allChannelSubroutine {
+    send "list"                               # Send an internal IRC command.
+                                              # In tbot.sh, the response will be logged in irc-output.log.
+    say tbot "!signal_allchan ${1}"        # Send a signal msg to self, which will cause irc-output.log
+                                                      # to be parsed for user information and sent back to the user.
+}
 
-function printSubroutine {
-    if [ "$#" -eq 0 ] ; then
-
-        say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick})"
-
+function channelSubroutine {      # channelSubroutine _sharp MattDaemon  -OR-  channelSubroutine #bingobobby MattDaemon p
+    nick_chan=${1}
+    target=${2}
+    send "whois ${target}"                        # Send an internal IRC command.
+                                                # In tbot.sh, the response will be logged in irc-output.log.
+    if [ ${3} ] ; then
+        say tbot "!signal ${nick_chan} ${target} p"    # Send a signal msg to self, which will cause irc-output.log
+                                                # to be parsed for user information and sent back to the user.
     else
-
-        str="$@"
-        IFS=' '                          # space is set as delimiter
-        read -ra arr <<< "${str}"        # str is read into an array as tokens separated by IFS
-        for arg in "${arr[@]}"; do       # access each element of array
-            case "${arg}" in
-                fab)
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} fab8201bw1)"
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} fabc8802bw1)"
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} fab6001bw1)"
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} fab5517bw1)"
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} fab5517bw2)"
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} fab5517clr1)"
-                    ;;
-                eb)
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} eb325bw1)"
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} eb325bw2)"
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} eb325clr1)"
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} eb420bw1)"
-                    say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} eb420clr1)"
-                    ;;
-                *)
-                    if [[ "${arg}" == "fab8201bw1" ]] ||
-                       [[ "${arg}" == "fabc8802bw1" ]] ||
-                       [[ "${arg}" == "fab6001bw1" ]] ||
-                       [[ "${arg}" == "fab5517bw1" ]] ||
-                       [[ "${arg}" == "fab5517bw2" ]] ||
-                       [[ "${arg}" == "fab5517clr1" ]] ||
-                       [[ "${arg}" == "eb325bw1" ]] ||
-                       [[ "${arg}" == "eb325bw2" ]] ||
-                       [[ "${arg}" == "eb325clr1" ]] ||
-                       [[ "${arg}" == "eb420bw1" ]] ||
-                       [[ "${arg}" == "eb420clr1" ]] ; then
-                        say ${chan} "$(ssh -oConnectTimeout=4 stargate /u/dkim/sandbox/scripts/printer-script.sh -u ${nick} ${arg})"
-                    else
-                        say ${chan} "${arg} not found"
-                    fi
-                    ;;
-            esac
-        done
-
+        say tbot "!signal ${nick_chan} ${target}"
     fi
-
 }
 
 # This subroutine displays documentation for tbot's functionalities.
 
 function helpSubroutine {
-    say ${chan} "Usage: !print -a | !print --all | !print fab eb | !print fab8802bw1 eb325bw1 ... | !print list | tbot: source"
+    # say ${chan} "I am a test bot; nothing to see here. Move along."
+    say ${chan} 'usage: !channels [-p | --privmsg][$NICK]'
 }
 
-# List all the printers.
+# This subroutine handles incoming signals from tbot.
 
-function listSubroutine {
-    for printer in "fab5517bw1    (Intel Lab/FAB MCECS General Lab)" "fab5517bw2    (Intel Lab/FAB MCECS General Lab)" "fab5517clr1   (Intel Lab/FAB MCECS General Lab)" "fab6001bw1    (Tektronix Lab)" "fab8201bw1    (Doghaus)" "fabc8802bw1   (Linux Lab)" "eb325bw1      (MCECS General Lab, West)" "eb325bw2      (MCECS General Lab, East)" "eb325clr1     (MCECS General Lab, West)" "eb420bw1      (MCAE Lab)" "eb420clr1     (MCAE Lab)" ; do
-        say ${nick} ${printer}
-    done
+function signalSubroutine {
+    arg1=$(echo ${msg} | cut -d ' ' -f 1)
+    nick_chan=$(echo ${msg} | cut -d ' ' -f 2)
+    target=$(echo ${msg} | cut -d ' ' -f 3)
+
+    if [[ ! ${arg1} == '!signal_allchan' ]] ; then
+        if [ $(cat irc-output.log | grep 'No such nick/channel') ] ; then           # Case: $NICK not found
+            say ${nick_chan} "No such nick/channel"
+        else                                                                        # Case: whois $NICK
+            nick=$(tac irc-output.log | grep -n '319' | head -n 1 | sed 's|[^#]*tbot \(.*\) :\(.*\)|\1|')
+            channels="$(tac irc-output.log | grep -n '319' | head -n 1 | sed 's|[^#]*tbot \(.*\) :\(.*\)|\2|')"
+            say ${nick_chan} "${nick} is currently in: ${channels}"
+        fi
+    else                                                                            # Case: list all channels
+        channels="$(cat irc-output.log | grep 322 | sed 's|^==>.*322 tbot ||g' | sed 's| :.*||g' | tr '\n' ' ' | sed 's| \([0-9]*\) |\(\1\) |g' | fold -s -w448)"
+
+        while read -r line; do
+            say ${nick_chan} "${line}"
+        done <<< "${channels}"
+    fi
+
+    rm irc-output.log
 }
 
 ################################################  Subroutines End  ################################################
@@ -111,7 +97,7 @@ function listSubroutine {
 
 # Help Command.
 
-if has "${msg}" "^!tbot$" || has "${msg}" "^tbot: help$" || has "${msg}" "^!print$" || has "${msg}" "^tbot: print$" || has "${msg}" "^tbot: print$" ; then
+if has "${msg}" "^!tbot$" || has "${msg}" "^tbot: help$" ; then
     helpSubroutine
 
 # Alive.
@@ -124,19 +110,36 @@ elif has "${msg}" "^!alive(\?)?$" || has "${msg}" "^tbot: alive(\?)?$" ; then
 elif has "${msg}" "^tbot: source$" ; then
     say ${chan} "Try -> https://github.com/kimdj/tbot -OR- /u/dkim/tbot"
 
-# Print script.
+# Get the list of all channels. [A]
 
-elif has "${msg}" "^!print -a$" || has "${msg}" "^!print --all$" || has "${msg}" "^tbot: print -a$" || has "${msg}" "^tbot: print --all$" ; then
-    printSubroutine
+elif has "${msg}" "^!channels$" ; then
+    allChannelSubroutine ${chan}
 
-elif has "${msg}" "^!print list$" || has "${msg}" "^tbot: print list$" || has "${msg}" "^tbot: print -l$" || has "${msg}" "^tbot: list$" ; then
-    listSubroutine
+# Get the list of all channels. [A]
 
-elif has "${msg}" "^!print " || has "${msg}" "^tbot: print " ; then
-    arg=$(echo ${msg} | sed -r 's/^!print //')                # cut out the leading part from ${msg}
-    arg=$(echo ${arg} | sed -r 's/^tbot: print //')         # cut out the leading part from ${msg}
+elif has "${msg}" "^!channels -p$" || has "${msg}" "^!channels --privmsg$" ; then
+    allChannelSubroutine ${nick}
 
-    printSubroutine ${arg}
+# Handle incoming msg from self (tbot => tbot).
+
+elif has "${msg}" "^!signal_allchan " && [[ ${nick} = "tbot" ]] ; then
+    signalSubroutine ${msg}
+
+# Get a nick's channels (nick/chan => tbot).
+
+elif has "${msg}" "^!channels " ; then                    # !channels MattDaemon  -OR-  !channels -p MattDaemon
+    target=$(echo ${msg} | sed -r 's/^!channels //')         # MattDaemon  -OR-  -p MattDaemon
+    if [[ ${target} == *-p* ]] || [[ ${target} == *--privmsg* ]] ; then
+        target=$(echo ${target} | sed -r 's/ *--privmsg//' | sed -r 's/ *-p//' | xargs)
+        channelSubroutine ${nick} ${target} 'p'              # channelSubroutine _sharp MattDaemon p
+    else
+        channelSubroutine ${chan} ${target}                  # channelSubroutine #bingobobby MattDaemon
+    fi
+
+# Handle incoming msg from self (tbot => tbot).
+
+elif has "${msg}" "^!signal " && [[ ${nick} = "tbot" ]] ; then
+    signalSubroutine ${msg}
 
 # Have tbot send an IRC command to the IRC server.
 
