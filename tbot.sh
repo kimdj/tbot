@@ -56,7 +56,7 @@ tail -f ${BOT_NICK}.io | openssl s_client -connect irc.cat.pdx.edu:6697 | while 
     fi
 
     read irc
-    echo "==> $irc"
+    echo "==> $irc" | head -c 1G > irc-output.log
     if $(echo "$irc" | cut -d ' ' -f 1 | grep -P "PING" > /dev/null) ; then
         send "PONG"
     elif $(echo "$irc" | cut -d ' ' -f 2 | grep -P "PRIVMSG" > /dev/null) ; then 
