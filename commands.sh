@@ -15,6 +15,10 @@ BOT_NICK="$(grep -P "BOT_NICK=.*" ${DIR}/tbot.sh | cut -d '=' -f 2- | tr -d '"')
 
 if [ "${chan}" = "${BOT_NICK}" ] ; then chan="${nick}" ; fi
 
+###################################################  Settings  ####################################################
+
+AUTHORIZED='_sharp MattDaemon'
+
 ###############################################  Subroutines Begin  ###############################################
 
 function has { $(echo "${1}" | grep -P "${2}" > /dev/null) ; }
@@ -58,7 +62,7 @@ function channelSubroutine {      # channelSubroutine _sharp MattDaemon  -OR-  c
 
 function helpSubroutine {
     # say ${chan} "I am a test bot; nothing to see here. Move along."
-    say ${chan} 'usage: !channels [-p | --privmsg][$NICK]'
+    say ${chan} 'usage: !channels [-p | --privmsg] [$NICK]'
 }
 
 # This subroutine handles incoming signals from tbot.
@@ -103,21 +107,24 @@ if has "${msg}" "^!tbot$" || has "${msg}" "^tbot: help$" ; then
 # Alive.
 
 elif has "${msg}" "^!alive(\?)?$" || has "${msg}" "^tbot: alive(\?)?$" ; then
-    say ${chan} "running!"
+    str1='running! '
+    str2=$(ps aux | grep ./tbot | head -n 1 | awk '{ print "[%CPU "$3"]", "[%MEM "$4"]", "[START "$9"]", "[TIME "$10"]" }')
+    str="${str1}${str2}"
+    say ${chan} "${str}"
 
 # Source.
 
 elif has "${msg}" "^tbot: source$" ; then
-    say ${chan} "Try -> https://github.com/kimdj/tbot -OR- /u/dkim/tbot"
+    say ${chan} "Try -> https://github.com/kimdj/tbot -OR- ${DIR}"
 
 # Get the list of all channels. [A]
 
-elif has "${msg}" "^!channels$" ; then
+elif has "${msg}" "^!channels?$" ; then
     allChannelSubroutine ${chan}
 
 # Get the list of all channels. [A]
 
-elif has "${msg}" "^!channels -p$" || has "${msg}" "^!channels --privmsg$" ; then
+elif has "${msg}" "^!channels? -p$" || has "${msg}" "^!channels? --privmsg$" ; then
     allChannelSubroutine ${nick}
 
 # Handle incoming msg from self (tbot => tbot).
@@ -127,8 +134,8 @@ elif has "${msg}" "^!signal_allchan " && [[ ${nick} = "tbot" ]] ; then
 
 # Get a nick's channels (nick/chan => tbot).
 
-elif has "${msg}" "^!channels " ; then                    # !channels MattDaemon  -OR-  !channels -p MattDaemon
-    target=$(echo ${msg} | sed -r 's/^!channels //')         # MattDaemon  -OR-  -p MattDaemon
+elif has "${msg}" "^!channels? " ; then                    # !channels MattDaemon  -OR-  !channels -p MattDaemon
+    target=$(echo ${msg} | sed -r 's/^!channels? //')         # MattDaemon  -OR-  -p MattDaemon
     if [[ ${target} == *-p* ]] || [[ ${target} == *--privmsg* ]] ; then
         target=$(echo ${target} | sed -r 's/ *--privmsg//' | sed -r 's/ *-p//' | xargs)
         channelSubroutine ${nick} ${target} 'p'              # channelSubroutine _sharp MattDaemon p
@@ -143,13 +150,13 @@ elif has "${msg}" "^!signal " && [[ ${nick} = "tbot" ]] ; then
 
 # Have tbot send an IRC command to the IRC server.
 
-elif has "${msg}" "^tbot: injectcmd " && [[ ${nick} = "_sharp" ]] ; then
+elif has "${msg}" "^tbot: injectcmd " && [[ "${AUTHORIZED}" == *"${nick}"* ]] ; then
     cmd=$(echo ${msg} | sed -r 's/^tbot: injectcmd //')
     send "${cmd}"
 
 # Have tbot send a message.
 
-elif has "${msg}" "^tbot: sendcmd " && [[ ${nick} = "_sharp" ]] ; then
+elif has "${msg}" "^tbot: sendcmd " && [[ "${AUTHORIZED}" == *"${nick}"* ]] ; then
     buffer=$(echo ${msg} | sed -re 's/^tbot: sendcmd //')
     dest=$(echo ${buffer} | sed -e "s| .*||")
     message=$(echo ${buffer} | cut -d " " -f2-)
