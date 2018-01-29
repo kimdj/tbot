@@ -78,7 +78,7 @@ function signalSubroutine {
         else                                                                        # Case: whois $NICK
             nick=$(tac irc-output.log | grep -n '319' | head -n 1 | sed 's|[^#]*tbot \(.*\) :\(.*\)|\1|')
             channels="$(tac irc-output.log | grep -n '319' | head -n 1 | sed 's|[^#]*tbot \(.*\) :\(.*\)|\2|')"
-            say ${nick_chan} "${nick} is currently in: ${channels}"
+            say ${nick_chan} "${nick} is currently in: $(echo "${channels}" | tr 'aeiostl' '43105+|' | tr 'AEIOSTL' '43105+|')"
         fi
     else                                                                            # Case: list all channels
         channels="$(cat irc-output.log | grep 322 | sed 's|^==>.*322 tbot ||g' | sed 's| :.*||g' | tr '\n' ' ' | sed 's| \([0-9]*\) |\(\1\) |g' | fold -s -w448)"
