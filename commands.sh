@@ -78,7 +78,47 @@ function signalSubroutine {
         else                                                                        # Case: whois $NICK
             nick=$(tac irc-output.log | grep -n '319' | head -n 1 | sed 's|[^#]*tbot \(.*\) :\(.*\)|\1|')
             channels="$(tac irc-output.log | grep -n '319' | head -n 1 | sed 's|[^#]*tbot \(.*\) :\(.*\)|\2|')"
-            say ${nick_chan} "${nick} is currently in: $(echo "${channels}" | tr 'aeiostl' '43105+|' | tr 'AEIOSTL' '43105+|')"
+            # sorted_channels=$(echo "${channels}" | sed -r 's| |\n|g' | sort | tr '\n' ' ' | sed -e 's|\r ||g' | tr 'aeiostl' '43105+|' | tr 'AEIOSTL' '43105+|')
+            sorted_channels=$(echo "${channels}" | sed -r 's| |\n|g' | sort | tr '\n' ' ' | sed -e 's|\r ||g')
+            IFS=' ' read -r -a chan_array <<< "$sorted_channels"
+            for chan in "${chan_array[@]}" ; do
+                chan="$(echo "${chan}" | sed -r 's|\+||')"
+                if [[ "${chan,,}" = *a* ]] ; then
+                  converted_chan="$(echo "${chan}" | tr 'a' '@' | tr 'A' '@')"
+                  sorted_channels="$(echo "${sorted_channels}" | sed -r "s|${chan}|${converted_chan}|")"
+                elif [[ "${chan,,}" = *e* ]] ; then
+                  echo ${chan} >> chan.tmp
+                  converted_chan="$(echo "${chan}" | tr 'e' '3' | tr 'E' '3')"
+                  echo ${converted_chan} >> chan.tmp
+                  sorted_channels="$(echo "${sorted_channels}" | sed -r "s|${chan}|${converted_chan}|")"
+                  echo ${sorted_channels} >> chan.tmp
+                elif [[ "${chan,,}" = *i* ]] ; then
+                  converted_chan="$(echo "${chan}" | tr 'i' '1' | tr 'I' '1')"
+                  sorted_channels="$(echo "${sorted_channels,,}" | sed -r "s|${chan}|${converted_chan}|")"
+                elif [[ "${chan,,}" = *o* ]] ; then
+                  converted_chan="$(echo "${chan}" | tr 'o' '0' | tr 'O' '0')"
+                  sorted_channels="$(echo "${sorted_channels}" | sed -r "s|${chan}|${converted_chan}|")"
+                elif [[ "${chan,,}" = *s* ]] ; then
+                  converted_chan="$(echo "${chan}" | tr 's' '$' | tr 'S' '$')"
+                  sorted_channels="$(echo "${sorted_channels}" | sed -r "s|${chan}|${converted_chan}|")"
+                elif [[ "${chan,,}" = *t* ]] ; then
+                  converted_chan="$(echo "${chan}" | tr 't' '+' | tr 'T' '+')"
+                  sorted_channels="$(echo "${sorted_channels}" | sed -r "s|${chan}|${converted_chan}|")"
+                elif [[ "${chan,,}" = *l* ]] ; then
+                  converted_chan="$(echo "${chan}" | tr 'l' '|' | tr 'L' '|')"
+                  sorted_channels="$(echo "${sorted_channels}" | sed -r "s|${chan}|${converted_chan}|")"
+                elif [[ "${chan}" =~ [^a-zA-Z0-9] ]] ; then
+                  true
+                else
+                  # ${str:${i}:1}
+                  rand=$[ ${RANDOM} % ${#chan} ]
+                  converted_chan=$(echo "${chan}" | sed s/./\*/${rand})
+                  # index="${#chan}"    # the last index
+                  # converted_chan=$(echo "${chan}" | sed s/./\*/${index})
+                  sorted_channels="$(echo "${sorted_channels}" | sed -r "s|${chan}|${converted_chan}|")"
+                fi
+            done
+            say ${nick_chan} "${nick} is currently in: $(echo "${sorted_channels}")"
         fi
     else                                                                            # Case: list all channels
         channels="$(cat irc-output.log | grep 322 | sed 's|^==>.*322 tbot ||g' | sed 's| :.*||g' | tr '\n' ' ' | sed 's| \([0-9]*\) |\(\1\) |g' | fold -s -w448)"
