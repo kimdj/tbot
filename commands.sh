@@ -119,12 +119,12 @@ elif has "${msg}" "^tbot: source$" ; then
 
 # Get the list of all channels. [A]
 
-elif has "${msg}" "^!channels?$" ; then
+elif has "${msg}" "^!chan(nel)?s?$" ; then
     allChannelSubroutine ${chan}
 
 # Get the list of all channels. [A]
 
-elif has "${msg}" "^!channels? -p$" || has "${msg}" "^!channels? --privmsg$" ; then
+elif has "${msg}" "^!chan(nel)?s? -p$" || has "${msg}" "^!chan(nel)?s? --privmsg$" ; then
     allChannelSubroutine ${nick}
 
 # Handle incoming msg from self (tbot => tbot).
@@ -134,8 +134,8 @@ elif has "${msg}" "^!signal_allchan " && [[ ${nick} = "tbot" ]] ; then
 
 # Get a nick's channels (nick/chan => tbot).
 
-elif has "${msg}" "^!channels? " ; then                    # !channels MattDaemon  -OR-  !channels -p MattDaemon
-    target=$(echo ${msg} | sed -r 's/^!channels? //')         # MattDaemon  -OR-  -p MattDaemon
+elif has "${msg}" "^!chan(nel)?s? " ; then                    # !channels MattDaemon  -OR-  !channels -p MattDaemon
+    target=$(echo ${msg} | sed -r 's/^!chan(nel)?s? //')         # MattDaemon  -OR-  -p MattDaemon
     if [[ ${target} == *-p* ]] || [[ ${target} == *--privmsg* ]] ; then
         target=$(echo ${target} | sed -r 's/ *--privmsg//' | sed -r 's/ *-p//' | xargs)
         channelSubroutine ${nick} ${target} 'p'              # channelSubroutine _sharp MattDaemon p
