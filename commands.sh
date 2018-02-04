@@ -196,7 +196,8 @@ if has "${msg}" "^!tbot$" || has "${msg}" "^tbot: help$" ; then
 elif has "${msg}" "^!alive(\?)?$" || has "${msg}" "^tbot: alive(\?)?$" ; then
     str1='running! '
     str2=$(ps aux | grep ./tbot | head -n 1 | awk '{ print "[%CPU "$3"]", "[%MEM "$4"]", "[START "$9"]", "[TIME "$10"]" }')
-    str="${str1}${str2}"
+    str3=" [TOT_SIZE $(du -sh | cut -f -1)]"
+    str="${str1}${str2}${str3}"
     say ${chan} "${str}"
 
 # Source.
